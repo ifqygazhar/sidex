@@ -315,13 +315,81 @@ fn read_node_version(binary: &str) -> Option<String> {
         .filter(|v| !v.is_empty())
 }
 
+fn node_major_version(version: &str) -> Option<u32> {
+    version
+        .trim()
+        .trim_start_matches('v')
+        .split('.')
+        .next()
+        .and_then(|part| part.parse::<u32>().ok())
+}
+
 fn is_usable_node(binary: &str) -> bool {
-    Command::new(binary)
+    let Ok(output) = Command::new(binary)
         .arg("--version")
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::null())
-        .status()
-        .is_ok()
+        .output()
+    else {
+        return false;
+    };
+
+    if !output.status.success() {
+        return false;
+    }
+
+    String::from_utf8(output.stdout)
+        .ok()
+        .and_then(|version| node_major_version(&version))
+        .is_some_and(|major| major >= 18)
+}
+
+fn node_platform_arch() -> &'static str {
+    if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") {
+            "darwin-arm64"
+        } else {
+            "darwin-x64"
+        }
+    } else if cfg!(target_os = "windows") {
+        if cfg!(target_arch = "aarch64") {
+            "win-arm64"
+        } else {
+            "win-x64"
+        }
+    } else if cfg!(target_arch = "aarch64") {
+        "linux-arm64"
+    } else {
+        "linux-x64"
+    }
+}
+
+fn login_shell_node_candidates() -> Vec<String> {
+    if cfg!(target_os = "windows") {
+        return Vec::new();
+    }
+
+    let mut candidates = Vec::new();
+    for shell in ["/bin/zsh", "/bin/bash"] {
+        let Ok(output) = Command::new(shell)
+            .args(["-lc", "command -v node"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output()
+        else {
+            continue;
+        };
+        if !output.status.success() {
+            continue;
+        }
+        if let Ok(path) = String::from_utf8(output.stdout) {
+            let path = path.trim();
+            if !path.is_empty() {
+                candidates.push(path.to_string());
+            }
+        }
+    }
+    candidates
 }
 
 pub fn bundled_node_candidates(app: &AppHandle) -> Vec<PathBuf> {
@@ -332,15 +400,25 @@ pub fn bundled_node_candidates(app: &AppHandle) -> Vec<PathBuf> {
     }
 
     let resource_candidates = if cfg!(target_os = "windows") {
-        vec!["node/node.exe", "bin/node.exe", "node.exe"]
+        vec![
+            format!("node/{}/node.exe", node_platform_arch()),
+            "node/node.exe".to_string(),
+            "bin/node.exe".to_string(),
+            "node.exe".to_string(),
+        ]
     } else {
-        vec!["node/bin/node", "bin/node", "node"]
+        vec![
+            format!("node/{}/bin/node", node_platform_arch()),
+            "node/bin/node".to_string(),
+            "bin/node".to_string(),
+            "node".to_string(),
+        ]
     };
 
     for relative in resource_candidates {
         if let Ok(path) = app
             .path()
-            .resolve(relative, tauri::path::BaseDirectory::Resource)
+            .resolve(&relative, tauri::path::BaseDirectory::Resource)
         {
             candidates.push(path);
         }
@@ -350,6 +428,13 @@ pub fn bundled_node_candidates(app: &AppHandle) -> Vec<PathBuf> {
     if cfg!(target_os = "windows") {
         candidates.push(manifest_dir.join("bin").join("node.exe"));
     } else {
+        candidates.push(
+            manifest_dir
+                .join("node")
+                .join(node_platform_arch())
+                .join("bin")
+                .join("node"),
+        );
         candidates.push(manifest_dir.join("bin").join("node"));
     }
 
@@ -375,9 +460,10 @@ pub fn resolve_node_runtime(app: &AppHandle) -> Result<ResolvedNode, String> {
     } else {
         vec![
             "node",
+            "/opt/homebrew/bin/node",
             "/usr/local/bin/node",
             "/usr/bin/node",
-            "/opt/homebrew/bin/node",
+            "/opt/local/bin/node",
         ]
     };
 
@@ -386,6 +472,17 @@ pub fn resolve_node_runtime(app: &AppHandle) -> Result<ResolvedNode, String> {
             return Ok(ResolvedNode {
                 path: candidate.to_string(),
                 version: read_node_version(candidate),
+                source: "system",
+                bundled: false,
+            });
+        }
+    }
+
+    for candidate in login_shell_node_candidates() {
+        if is_usable_node(&candidate) {
+            return Ok(ResolvedNode {
+                version: read_node_version(&candidate),
+                path: candidate,
                 source: "system",
                 bundled: false,
             });
@@ -808,7 +905,7 @@ pub async fn extension_platform_bootstrap(
 
     Ok(serde_json::json!({
         "transport": { "kind": "websocket", "endpoint": format!("ws://127.0.0.1:{port}/") },
-        "runtime": { "path": node.path, "version": node.version, "source": "system", "bundled": false },
+        "runtime": { "path": node.path, "version": node.version, "source": node.source, "bundled": node.bundled },
         "paths": {
             "serverScript": resolve_server_script(&app).to_string_lossy(),
             "builtinExtensionsDir": resolve_builtin_extensions_dir(&app).to_string_lossy(),

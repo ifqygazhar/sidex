@@ -49,6 +49,10 @@ jobs:
           brew install create-dmg
           sudo ln -sf "$(which create-dmg)" /usr/local/bin/create-dmg
 
+      - name: Bundle Node runtime
+        shell: bash
+        run: bash scripts/bundle-node-runtime.sh ${{ matrix.target }}
+
       - name: Setup built-in extensions
         shell: bash
         run: bash scripts/setup-extensions.sh

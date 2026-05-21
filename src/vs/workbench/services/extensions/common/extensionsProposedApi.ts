@@ -64,6 +64,7 @@ export class ExtensionsProposedApi {
 	private doUpdateEnabledApiProposals(extension: Mutable<IExtensionDescription>): void {
 
 		const key = ExtensionIdentifier.toKey(extension.identifier);
+		const isSideXTauri = (globalThis as any).__SIDEX_TAURI__ === true;
 
 		// warn about invalid proposal and remove them from the list
 		if (isNonEmptyArray(extension.enabledApiProposals)) {
@@ -104,6 +105,10 @@ export class ExtensionsProposedApi {
 		if (this._envEnablesProposedApiForAll || this._envEnabledExtensions.has(key)) {
 			// proposed API usage is not restricted and allowed just like the extension
 			// has declared it
+			return;
+		}
+
+		if (isSideXTauri) {
 			return;
 		}
 
