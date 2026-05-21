@@ -766,7 +766,7 @@ pub fn build_init_data(
     let data_dir = user_data_dir();
 
     ExtensionHostInitData {
-        version: "1.93.0".to_string(),
+        version: "1.110.0".to_string(),
         commit: None,
         parent_pid: std::process::id(),
         environment: InitDataEnvironment {
