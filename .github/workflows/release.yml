@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref_name || github.event.inputs.version }}
+  group: release-${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}
   cancel-in-progress: false
 
 env:
@@ -180,7 +180,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.prepare-release.outputs.release_tag }}
         run: |
-          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" --jq '.id')"
-          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" \
-            -F draft=false \
-            -f make_latest=true
+          gh release edit "$RELEASE_TAG" --draft=false --latest
