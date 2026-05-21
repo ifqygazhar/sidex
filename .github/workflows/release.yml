@@ -139,13 +139,32 @@ jobs:
         timeout-minutes: 40
         run: bunx tauri build --target ${{ matrix.target }} --config src-tauri/tauri.release.conf.json
 
-      - name: Validate macOS bundle contents
+      - name: Validate macOS DMG contents
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          app_path="$(find target -path "*/bundle/macos/SideX.app" -type d -print -quit)"
+          dmg_path="$(find target -path "*/bundle/dmg/*.dmg" -type f -print -quit)"
+          if [ -z "$dmg_path" ]; then
+            echo "::error::DMG was not created"
+            find target -maxdepth 8 -type f -name "*.dmg" -print
+            exit 1
+          fi
+
+          echo "Validating $dmg_path"
+
+          mount_dir="$(mktemp -d)"
+          cleanup() {
+            hdiutil detach "$mount_dir" -quiet || true
+            rmdir "$mount_dir" || true
+          }
+          trap cleanup EXIT
+
+          hdiutil attach "$dmg_path" -readonly -nobrowse -mountpoint "$mount_dir" -quiet
+
+          app_path="$(find "$mount_dir" -maxdepth 2 -name "SideX.app" -type d -print -quit)"
           if [ -z "$app_path" ]; then
-            echo "::error::SideX.app was not created"
+            echo "::error::SideX.app was not found inside DMG"
+            find "$mount_dir" -maxdepth 3 -print
             exit 1
           fi
 
