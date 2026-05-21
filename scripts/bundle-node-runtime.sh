@@ -58,8 +58,8 @@ download_node() {
   extracted="$tmp/${archive%.tar.gz}"
 
   rm -rf "$target_dir"
-  mkdir -p "$target_dir"
-  cp -R "$extracted/bin" "$target_dir/"
+  mkdir -p "$target_dir/bin"
+  cp "$extracted/bin/node" "$target_dir/bin/node"
   chmod +x "$target_dir/bin/node"
   "$target_dir/bin/node" --version
 
