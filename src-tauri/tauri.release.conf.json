@@ -3,7 +3,7 @@
     "beforeBuildCommand": ""
   },
   "bundle": {
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "macOS": {
       "signingIdentity": "-"
     }
