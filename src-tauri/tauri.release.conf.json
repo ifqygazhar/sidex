@@ -3,6 +3,7 @@
     "beforeBuildCommand": ""
   },
   "bundle": {
+    "targets": ["dmg"],
     "createUpdaterArtifacts": false,
     "macOS": {
       "signingIdentity": "-"

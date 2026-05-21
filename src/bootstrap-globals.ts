@@ -14,12 +14,12 @@
 	applicationName: 'sidex',
 	dataFolderName: '.sidex',
 	urlProtocol: 'sidex',
-	version: '1.96.0',
+	version: '1.110.0',
 	commit: '',
 	date: new Date().toISOString(),
 	quality: 'stable'
 };
 
 (globalThis as any)._VSCODE_PACKAGE_JSON = {
-	version: '1.96.0'
+	version: '1.110.0'
 };
