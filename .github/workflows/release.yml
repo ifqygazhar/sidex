@@ -47,6 +47,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.release_tag }}
           name: SideX ${{ steps.version.outputs.release_tag }}
           generate_release_notes: true
+          make_latest: true
 
   build:
     needs: prepare-release
@@ -126,3 +127,4 @@ jobs:
           tag_name: ${{ needs.prepare-release.outputs.release_tag }}
           files: dist-artifacts/*.dmg
           fail_on_unmatched_files: true
+          overwrite_files: true
