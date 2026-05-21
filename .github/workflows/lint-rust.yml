@@ -1,28 +1,7 @@
 name: Lint Rust
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/lint-rust.yml"
-      - "crates/**"
-      - "src-tauri/**"
-      - "extensions-rust/**"
-      - "sidex-extension-sdk/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rustfmt.toml"
-  pull_request:
-    branches: [main]
-    paths:
-      - ".github/workflows/lint-rust.yml"
-      - "crates/**"
-      - "src-tauri/**"
-      - "extensions-rust/**"
-      - "sidex-extension-sdk/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rustfmt.toml"
+  workflow_dispatch:
 
 env:
   RUST_BACKTRACE: 1
