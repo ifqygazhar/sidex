@@ -10,7 +10,11 @@ if (!version || !semverPattern.test(version)) {
 function updateJson(file, update) {
   const json = JSON.parse(readFileSync(file, 'utf8'));
   update(json);
-  writeFileSync(file, `${JSON.stringify(json, null, 2)}\n`);
+  const content = JSON.stringify(json, null, 2).replace(
+    /[\u007f-\uffff]/g,
+    (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+  writeFileSync(file, `${content}\n`);
 }
 
 for (const file of [
@@ -34,12 +38,16 @@ if (existsSync('package-lock.json')) {
 
 const cargoPath = 'src-tauri/Cargo.toml';
 const cargoToml = readFileSync(cargoPath, 'utf8');
+let foundCargoPackageVersion = false;
 const updatedCargoToml = cargoToml.replace(
   /(^\[package\][\s\S]*?^version\s*=\s*)"[^\"]+"/m,
-  `$1"${version}"`,
+  (_match, prefix) => {
+    foundCargoPackageVersion = true;
+    return `${prefix}"${version}"`;
+  },
 );
 
-if (updatedCargoToml === cargoToml) {
+if (!foundCargoPackageVersion) {
   throw new Error(`Could not update [package] version in ${cargoPath}`);
 }
 
