@@ -109,7 +109,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['vscode-textmate', 'vscode-oniguruma'],
+    include: ['vscode-textmate', 'vscode-oniguruma', '@vscode/iconv-lite-umd', 'jschardet'],
     exclude: ['@tauri-apps/api'],
   },
   worker: {

@@ -9,6 +9,29 @@ import { importAMDNodeModule } from '../../../../amdX.js';
 import { CancellationTokenSource } from '../../../../base/common/cancellation.js';
 import { coalesce } from '../../../../base/common/arrays.js';
 
+const isTauri = !!(globalThis as any).__SIDEX_TAURI__;
+
+async function loadIconvLite() {
+	if (isTauri) {
+		const mod = await import('@vscode/iconv-lite-umd');
+		return (mod as any).default ?? mod;
+	}
+
+	return importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
+		'@vscode/iconv-lite-umd',
+		'lib/iconv-lite-umd.js'
+	);
+}
+
+async function loadJschardet() {
+	if (isTauri) {
+		const mod = await import('jschardet');
+		return (mod as any).default ?? mod;
+	}
+
+	return importAMDNodeModule<typeof import('jschardet')>('jschardet', 'dist/jschardet.min.js');
+}
+
 export const UTF8 = 'utf8';
 export const UTF8_with_bom = 'utf8bom';
 export const UTF16be = 'utf16be';
@@ -79,10 +102,7 @@ class DecoderStream implements IDecoderStream {
 	static async create(encoding: string): Promise<DecoderStream> {
 		let decoder: IDecoderStream | undefined = undefined;
 		if (encoding !== UTF8) {
-			const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
-				'@vscode/iconv-lite-umd',
-				'lib/iconv-lite-umd.js'
-			);
+			const iconv = await loadIconvLite();
 			decoder = iconv.getDecoder(toNodeEncoding(encoding));
 		} else {
 			const utf8TextDecoder = new TextDecoder();
@@ -230,10 +250,7 @@ export async function toEncodeReadable(
 	encoding: string,
 	options?: { addBOM?: boolean }
 ): Promise<VSBufferReadable> {
-	const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
-		'@vscode/iconv-lite-umd',
-		'lib/iconv-lite-umd.js'
-	);
+	const iconv = await loadIconvLite();
 	const encoder = iconv.getEncoder(toNodeEncoding(encoding), options);
 
 	let bytesWritten = false;
@@ -282,10 +299,7 @@ export async function toEncodeReadable(
 }
 
 export async function encodingExists(encoding: string): Promise<boolean> {
-	const iconv = await importAMDNodeModule<typeof import('@vscode/iconv-lite-umd')>(
-		'@vscode/iconv-lite-umd',
-		'lib/iconv-lite-umd.js'
-	);
+	const iconv = await loadIconvLite();
 
 	return iconv.encodingExists(toNodeEncoding(encoding));
 }
@@ -344,7 +358,7 @@ const IGNORE_ENCODINGS = ['ascii', 'utf-16', 'utf-32'];
  * Guesses the encoding from buffer.
  */
 async function guessEncodingByBuffer(buffer: VSBuffer, candidateGuessEncodings?: string[]): Promise<string | null> {
-	const jschardet = await importAMDNodeModule<typeof import('jschardet')>('jschardet', 'dist/jschardet.min.js');
+	const jschardet = await loadJschardet();
 
 	// ensure to limit buffer for guessing due to https://github.com/aadsm/jschardet/issues/53
 	const limitedBuffer = buffer.slice(0, AUTO_ENCODING_GUESS_MAX_BYTES);
