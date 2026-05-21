@@ -250,7 +250,7 @@ export class Extension implements IExtension {
 	}
 
 	get iconUrl(): string | undefined {
-		return this.galleryIconUrl || this.resourceExtensionIconUrl || this.localIconUrl || this.defaultIconUrl;
+		return this.localIconUrl || this.resourceExtensionIconUrl || this.defaultIconUrl || this.galleryIconUrl;
 	}
 
 	get iconUrlFallback(): string | undefined {

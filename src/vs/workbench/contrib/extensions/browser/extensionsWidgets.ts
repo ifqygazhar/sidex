@@ -103,9 +103,22 @@ export class ExtensionIconWidget extends ExtensionWidget {
 		this.iconUrl = undefined;
 		this.iconElement.src = '';
 		this.iconElement.style.display = 'none';
+		this.iconElement.style.visibility = 'inherit';
 		this.defaultIconElement.style.display = 'none';
 		this.iconErrorDisposable.clear();
 		this.iconLoadingDisposable.clear();
+	}
+
+	private showDefaultIcon(): void {
+		this.iconElement.style.display = 'none';
+		this.iconElement.style.visibility = 'inherit';
+		this.defaultIconElement.style.display = 'inherit';
+	}
+
+	private showImageIcon(): void {
+		this.defaultIconElement.style.display = 'none';
+		this.iconElement.style.display = 'inherit';
+		this.iconElement.style.visibility = 'inherit';
 	}
 
 	render(): void {
@@ -116,30 +129,30 @@ export class ExtensionIconWidget extends ExtensionWidget {
 
 		if (this.extension.iconUrl) {
 			if (this.iconUrl !== this.extension.iconUrl) {
-				this.iconElement.style.display = 'inherit';
-				this.defaultIconElement.style.display = 'none';
+				this.showDefaultIcon();
 				this.iconUrl = this.extension.iconUrl;
+				this.iconErrorDisposable.clear();
+				this.iconLoadingDisposable.clear();
 				this.iconErrorDisposable.value = addDisposableListener(this.iconElement, 'error', () => {
 					if (this.extension?.iconUrlFallback) {
 						this.iconElement.src = this.extension.iconUrlFallback;
 					} else {
-						this.iconElement.style.display = 'none';
-						this.defaultIconElement.style.display = 'inherit';
+						this.showDefaultIcon();
 					}
 				}, { once: true });
 				this.iconElement.src = this.iconUrl;
 				if (!this.iconElement.complete) {
-					this.iconElement.style.visibility = 'hidden';
 					this.iconLoadingDisposable.value = addDisposableListener(this.iconElement, 'load', () => {
-						this.iconElement.style.visibility = 'inherit';
+						this.showImageIcon();
 					});
 				} else {
-					this.iconElement.style.visibility = 'inherit';
+					this.showImageIcon();
 				}
 			}
 		} else {
 			this.iconUrl = undefined;
 			this.iconElement.style.display = 'none';
+			this.iconElement.style.visibility = 'inherit';
 			this.iconElement.src = '';
 			this.defaultIconElement.style.display = 'inherit';
 			this.iconErrorDisposable.clear();
