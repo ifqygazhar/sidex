@@ -63,6 +63,12 @@ download_node() {
   chmod +x "$target_dir/bin/node"
   "$target_dir/bin/node" --version
 
+  if find "$target_dir" -type l -print -quit | grep -q .; then
+    echo "Bundled Node runtime must not contain symlinks." >&2
+    find "$target_dir" -type l -print >&2
+    exit 1
+  fi
+
   rm -rf "$tmp"
 }
 
@@ -84,3 +90,5 @@ case "$target" in
     echo "No bundled Node runtime configured for target '$target'"
     ;;
 esac
+
+find "$out_dir" -maxdepth 4 -type f -print | sort

@@ -108,7 +108,20 @@ jobs:
 
       - name: Bundle Node runtime
         shell: bash
-        run: bash scripts/bundle-node-runtime.sh ${{ matrix.target }}
+        run: |
+          bash scripts/bundle-node-runtime.sh ${{ matrix.target }}
+
+          if find src-tauri/node -type l -print -quit | grep -q .; then
+            echo "::error::Bundled Node runtime contains symlinks. Only bin/node should be bundled."
+            find src-tauri/node -type l -print
+            exit 1
+          fi
+
+          if find src-tauri/node -path '*/bin/corepack' -o -path '*/bin/npm' -o -path '*/bin/npx' | grep -q .; then
+            echo "::error::Bundled Node runtime contains npm/corepack helper links. Only bin/node should be bundled."
+            find src-tauri/node -path '*/bin/corepack' -o -path '*/bin/npm' -o -path '*/bin/npx'
+            exit 1
+          fi
 
       - name: Setup built-in extensions
         shell: bash
